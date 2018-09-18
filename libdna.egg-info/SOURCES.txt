@@ -1,8 +1,0 @@
-README.md
-setup.py
-libdna/__init__.py
-libdna/libdna.py
-libdna.egg-info/PKG-INFO
-libdna.egg-info/SOURCES.txt
-libdna.egg-info/dependency_links.txt
-libdna.egg-info/top_level.txt
