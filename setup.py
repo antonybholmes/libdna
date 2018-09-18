@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='libdna',
-    version='0.0.4',
+    version='0.0.5',
     author='Antony B Holmes',
     author_email='antony.b.holmes@gmail.com',
     description='A library for working with DNA.',

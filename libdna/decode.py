@@ -19,7 +19,7 @@ class DNA(ABC):
             will be converted to lowercase.
         """
         
-        l = parse_loc(args)
+        l = libdna.parse_loc(args)
         
         print('>{}'.format(l))
         print(self.dna(l, mask=mask))
