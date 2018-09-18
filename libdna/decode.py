@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+import libdna
+
 class DNA(ABC):
     @abstractmethod
     def dna(self, *args):
