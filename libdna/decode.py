@@ -6,7 +6,7 @@ class DNA(ABC):
     def dna(self, *args):
         raise NotImplementedError
 
-    def fasta(self, *args, mask='mask'):
+    def fasta(self, loc, mask='mask'):
         """
         Prints a fasta representation of a sequence.
         
@@ -19,7 +19,7 @@ class DNA(ABC):
             will be converted to lowercase.
         """
         
-        l = libdna.parse_loc(args)
+        l = libdna.parse_loc(loc)
         
         print('>{}'.format(l))
         print(self.dna(l, mask=mask))
@@ -29,13 +29,13 @@ class DNAStr(DNA):
     def __init__(self, dir):
         self.__dir = dir
     
-    def dna(self, *args):
-        chr, start, end = DNA.loc_args(args)
+    def dna(self, loc):
+        l = libdna.parse_loc(loc)
         
-        sstart = start - 1
-        send = end - 1
+        sstart = l.start - 1
+        send = l.end - 1
       
-        file = os.path.join(self.dir, chr + ".txt")
+        file = os.path.join(self.dir, l.chr + ".txt")
         
         f = open(file, 'r')
       
@@ -273,7 +273,7 @@ class DNA2Bit(DNA):
                 if d[i] == 1:
                     ret[i] = 'N'
     
-    def dna(self, *args, mask='upper'):
+    def dna(self, loc, mask='upper'):
         """
         Returns the DNA for a location.
         
@@ -289,10 +289,7 @@ class DNA2Bit(DNA):
             List of base chars.
         """
         
-        if len(args) == 0:
-            return ''
-
-        l = libdna.parse_loc(args)
+        l = libdna.parse_loc(loc)
             
         ret = self._read_dna(l)
         
@@ -300,7 +297,7 @@ class DNA2Bit(DNA):
             
         self._read_mask(l, ret, mask=mask)
       
-        return ''.join(ret) #.upper()
+        return ''.join(ret)
 
     
     def merge_read_pair_seq(self, r1, r2):
