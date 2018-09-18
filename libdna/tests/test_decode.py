@@ -8,7 +8,7 @@ class TestDecode(TestCase):
 
         location = "chr3:187446721-187447977"
     
-        dna = DNA2Bit('/ifs/scratch/cancer/Lab_RDF/abh2138/references/ucsc/assembly/hg19/2bitext')
+        dna = libdna.DNA2Bit('/ifs/scratch/cancer/Lab_RDF/abh2138/references/ucsc/assembly/hg19/2bitext')
     
         #dna.fasta(location)
     

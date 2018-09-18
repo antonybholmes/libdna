@@ -292,7 +292,7 @@ class DNA2Bit(DNA):
         if len(args) == 0:
             return ''
 
-        l = parse_loc(args)
+        l = libdna.parse_loc(args)
             
         ret = self._read_dna(l)
         
