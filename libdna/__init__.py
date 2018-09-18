@@ -1,5 +1,5 @@
 name = 'libdna'
-from libdna.libdna import Loc
-from libdna.decode import DNA2Bit
-
+from libdna.libdna import *
+from libdna.decode import *
+from libdna.encode import *
 
