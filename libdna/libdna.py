@@ -97,13 +97,3 @@ def parse_loc(loc):
                 return Loc(chr, start, start)
             else:
                 return None
-        
-      
-if __name__ == '__main__':    
-    location = "chr3:187446721-187447977"
-    
-    dna = DNA2Bit('/ifs/scratch/cancer/Lab_RDF/abh2138/references/ucsc/assembly/hg19/2bitext')
-    
-    #dna.fasta(location)
-    
-    dna.fasta(('chr1', 14453, 14453 + 350))
