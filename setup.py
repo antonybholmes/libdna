@@ -6,6 +6,7 @@ setuptools.setup(
     author='Antony B Holmes',
     author_email='antony.b.holmes@gmail.com',
     description='A library for working with DNA.',
+    url='https://github.com/antonybholmes/libdna',
     packages=setuptools.find_packages(),
     test_suite='nose.collector',
     tests_require=['nose'],
