@@ -327,7 +327,7 @@ class DNA2Bit(DNA):
         inner = s2 - e1 - 1
     
         if inner >= 0:
-            seq = self.dna(r1.chr, s1, e2)
+            seq = self.dna((r1.chr, s1, e2))
         else:
             # Reads overlap so concatenate the first read with the
             # portion of the second read that is not overlapping

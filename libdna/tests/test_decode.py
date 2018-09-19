@@ -14,7 +14,7 @@ class TestDecode(TestCase):
     
         dna.fasta(('chr1', 14453, 14453 + 350))
         
-        s = dna.dna(('chr1', 14453, 14453 + 350))
+        s = dna.dna('chr1:14453-15000')
         
         log.debug(s)
         log.debug('what')
