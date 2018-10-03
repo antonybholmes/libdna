@@ -6,9 +6,7 @@ Created on Thu Aug 23 16:09:37 2018
 @author: antony
 """
 
-import os
 import re
-from abc import ABC, abstractmethod
 
 LOC_REGEX = re.compile(r'(chr(?:[1-9][0-9]?|[XYM])):(\d+)-(\d+)')
 SHORT_LOC_REGEX = re.compile(r'(chr(?:[1-9][0-9]?|[XYM])):(\d+)')
@@ -33,8 +31,16 @@ class Loc(object):
     def end(self):
         return self.__end
     
-    def __str__(self):
+    @property
+    def length(self):
+        return self.end - self.start + 1
+    
+    @property
+    def loc(self):
         return '{}:{}-{}'.format(self.chr, self.start, self.end)
+    
+    def __str__(self):
+        return self.loc
     
 
 def is_loc_obj(l):
