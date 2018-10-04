@@ -197,8 +197,7 @@ class DNA2Bit(DNA):
             ret[i] = DNA_UC_DECODE_DICT[v]
                 
             s += 1
-    
-        print('dfdf', type(ret))
+            
         return ret
     
     
@@ -362,8 +361,6 @@ class DNA2Bit(DNA):
         l = libdna.parse_loc(loc)
             
         ret = self._read_dna(l, lowercase=lowercase)
-        
-        print('f', type(ret))
         
         self._read_n(l, ret)
             
