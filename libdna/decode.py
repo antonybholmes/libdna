@@ -265,7 +265,7 @@ class DNA2Bit(DNA):
         
         d = DNA2Bit._read1bit(self.__mask_data, l)
         
-        if mask == 'lower':
+        if mask.startswith(l):
             for i in range(0, len(ret)):
                 if d[i] == 1:
                     ret[i] = ret[i].lower()
