@@ -1,8 +1,6 @@
 import sys
 import math
-import struct
 import re
-import libdna
 
 CHAR_MAP = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'a': 0, 'c': 1, 'g': 2, 't': 3, 'N': 0, 'n': 0}
 

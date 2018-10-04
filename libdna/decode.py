@@ -228,7 +228,7 @@ class DNA2Bit(DNA):
         f = open(file, 'rb')
         f.seek((l.start - 1) // 4)
         # read bytes into buffer
-        data = f.read(l.length // 4 + 1)
+        data = f.read(l.length // 4 + 2)
         f.close()
         
         return DNA2Bit._read2bit(data, l)
@@ -254,7 +254,15 @@ class DNA2Bit(DNA):
         
         f = open(file, 'rb')
         f.seek((l.start - 1) // 8)
-        data = f.read(l.length // 8 + 1)
+        # read length + 2 because we need the extra byte in case the start
+        # position lies mid way through a byte. Imagine a sequence 10 bp long
+        # starting at position 4. 10 // 8 + 1 = 2 bytes of data required to
+        # store this. Since we pick the closest byte as the start, this will
+        # be position 0 (4 // 8 = 0). The length is 2 bytes spanning bytes 0
+        # and 1, but because of the start at 3, our sequence spans byte 3 so
+        # we need to buffer an extra byte for cases where the start does not
+        # match the start of a byte
+        data = f.read(l.length // 8 + 2)
         f.close()
         return data
     
@@ -532,3 +540,6 @@ class CachedDNA2Bit(DNA2Bit):
             for i in range(0, len(ret)):
                 if d[i] == 1:
                     ret[i] = DNA_N_UC #'N'
+
+
+
