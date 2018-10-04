@@ -105,5 +105,17 @@ def parse_loc(loc):
                 return None
 
 
-
-
+def format_dna(dna):
+    ret = ''
+    
+    n = len(dna)
+    
+    for s in range(0, n, 80):
+        e = s + 80
+        
+        if e > n:
+            e = n
+            
+        ret += dna[s:e] + '\n'
+        
+    return ret
