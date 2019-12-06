@@ -2,7 +2,8 @@ import os
 from abc import ABC, abstractmethod
 import libdna
 import sys
-import awss3lib
+#import awss3lib
+import s3fs
 
 # Use ord('A') etc to get ascii values
 DNA_UC_DECODE_DICT = {0:65, 1:67, 2:71, 3:84}
@@ -486,16 +487,17 @@ class DNA2Bit(DNA):
 class AWSS3DNA2Bit(DNA2Bit):
     def __init__(self, bucket, dir):
         super().__init__(dir)
-        self.__bucket = awss3lib.AWSS3Bucket(bucket)
+        self.__bucket = bucket
+        self.__fs = s3fs.S3FileSystem(anon=True)
         
     @property
     def bucket(self):
         return self.__bucket
     
     def read_data(self, file, seek, n):
-        file = os.path.join(self.dir, file).lower()
+        file = os.path.join(self.__bucket, self.dir, file).lower()
         
-        f = self.__bucket.open(file)
+        f = self.__fs.open(file)
         f.seek(seek)
         data = f.read(n)
         return data
