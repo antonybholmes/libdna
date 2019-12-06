@@ -1,14 +1,16 @@
 import libdna
 import logging
+import unittest
+import sys
 
-class TestDecode(TestCase):
+class TestDecode(unittest.TestCase):
     def decode(self):
         logging.basicConfig(stream=sys.stderr)
         log = logging.getLogger(__name__).setLevel( logging.DEBUG )
 
         location = "chr3:187446721-187447977"
     
-        dna = libdna.DNA2Bit('/ifs/scratch/cancer/Lab_RDF/abh2138/references/ucsc/assembly/hg19/2bitext')
+        dna = libdna.DNA2Bit('/ifs/scratch/cancer/Lab_RDF/abh2138/references/ucsc/assembly/2bit')
     
         #dna.fasta(location)
     

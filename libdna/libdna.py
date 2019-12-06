@@ -105,13 +105,24 @@ def parse_loc(loc):
                 return None
 
 
-def format_dna(dna):
+def format_dna(dna, width=80):
+    """
+    Format dna so each line is a fixed width.
+    
+    Parameters
+    ----------
+    dna : str
+        dna sequence.
+    width : int, optional
+        Width of dna in chars. Default is 80.
+    """
+    
     ret = ''
     
     n = len(dna)
     
-    for s in range(0, n, 80):
-        e = s + 80
+    for s in range(0, n, width):
+        e = s + width
         
         if e > n:
             e = n

@@ -1,6 +1,8 @@
 import os
 from abc import ABC, abstractmethod
 import libdna
+import sys
+import awss3lib
 
 # Use ord('A') etc to get ascii values
 DNA_UC_DECODE_DICT = {0:65, 1:67, 2:71, 3:84}
@@ -9,13 +11,14 @@ DNA_UC_TO_LC_MAP = {65:97, 67:99, 71:103, 84:116, 78:110}
 DNA_N_UC = 78
 DNA_N_LC = 110
 DNA_COMP_DICT = {65:84, 67:71, 84:65, 71:67, 97:116, 99:103, 116:97, 103:99, 78:78, 110:110}
+EMPTY_BYTEARRAY = bytearray(0)
 
 class DNA(ABC):
     @abstractmethod
     def dna(self, *args):
         raise NotImplementedError
 
-    def fasta(self, loc, mask='mask'):
+    def fasta(self, loc, mask='upper'):
         """
         Prints a fasta representation of a sequence.
         
@@ -32,6 +35,26 @@ class DNA(ABC):
         
         print('>{}'.format(l))
         print(self.dna(l, mask=mask))
+        
+    def to_fasta(self, loc, file, mask='upper'):
+        """
+        Prints a fasta representation of a sequence.
+        
+        Parameters
+        ----------
+        l : tuple (str, int, int)
+            location chr, start, and end
+        mask : str, optional
+            Either 'upper', 'lower', or 'n'. If 'lower', poor quality bases 
+            will be converted to lowercase.
+        """
+        
+        l = libdna.parse_loc(loc)
+        
+        f = open(file, 'w')
+        f.write('>{}\n'.format(l))
+        f.write('{}\n'.format(self.dna(l, mask=mask)))
+        f.close()
         
         
 class DNAStr(DNA):
@@ -87,9 +110,8 @@ class DNA2Bit(DNA):
             dna[i2] = b
             i2 -= 1
             
-        
-    @staticmethod
-    def _read1bit(d, l, offset=False):
+            
+    def _read1bit(self, d, loc, offset=False):
         """
         Read data from a 1 bit file where each byte encodes 8 bases.
         
@@ -106,10 +128,13 @@ class DNA2Bit(DNA):
             list of 1s and 0s of length equal to the number of bases in
             the location.
         """
+        
+        if d is None:
+            return []
 
-        s = l.start - 1
+        s = loc.start - 1
 
-        length = l.end - l.start + 1
+        length = loc.end - loc.start + 1
 
         ret = [0] * length
         
@@ -149,17 +174,17 @@ class DNA2Bit(DNA):
         return ret
     
     
-    @staticmethod
-    def _read2bit(d, l, offset=False):
+    def _read2bit(self, d, loc, offset=False):
         """
         Read DNA from a 2bit file where each base is encoded in 2bit 
         (4 bases per byte).
         
         Parameters
         ----------
-        d:
-        l : tuple
-            Location tuple
+        d: bytes array
+             Encoded dna.
+        loc : tuple
+            Location (chr, start, end)
         
         Returns
         -------
@@ -167,16 +192,21 @@ class DNA2Bit(DNA):
             Array of base chars
         """
         
-        s = l.start - 1
+        if d is None:
+            return EMPTY_BYTEARRAY
         
-        ret = bytearray([0] * l.length) #[]
+        print(d, loc)
+        
+        s = loc.start - 1
+        
+        ret = bytearray([0] * loc.length) #[]
         
         if offset:
             bi = s // 4
         else:
             bi = 0
         
-        for i in range(0, l.length):
+        for i in range(0, loc.length):
             block = s % 4
             
             if block == 0:
@@ -197,11 +227,12 @@ class DNA2Bit(DNA):
             ret[i] = DNA_UC_DECODE_DICT[v]
                 
             s += 1
-            
+
+  
         return ret
     
     
-    def _read_dna(self, l, lowercase=False):
+    def _read_dna(self, loc, lowercase=False):
         """
         Read DNA from a 2bit file where each base is encoded in 2bit 
         (4 bases per byte).
@@ -217,24 +248,28 @@ class DNA2Bit(DNA):
             Array of base chars
         """
         
-        file = os.path.join(self.dir, l.chr + ".dna.2bit")
+        file = '{}.dna.2bit'.format(loc.chr)
         
-        print(file)
+        s = loc.start - 1
+        e = s + loc.length
+        bs = s // 4
+        be = e // 4
+        l = be - bs + 1
         
-        if not os.path.exists(file):
-            return bytearray([])
-       
-        f = open(file, 'rb')
-        f.seek((l.start - 1) // 4)
-        # read bytes into buffer
-        data = f.read(l.length // 4 + 2)
-        f.close()
+#        f = open(file, 'rb')
+#        f.seek(bs) #(loc.start - 1) // 4)
+#        # read bytes into buffer
+#        data = f.read(l) #loc.length // 4 + 2)
+#        f.close()
         
-        return DNA2Bit._read2bit(data, l)
+        data = self.read_data(file, bs, l)
+        
+        print(loc, data, file=sys.stderr)
+        
+        return self._read2bit(data, loc)
     
     
-    @staticmethod
-    def _read_1bit_file(file, l):
+    def _read_1bit_file(self, file, loc):
         """
         Load data from 1 bit file into array
         
@@ -242,7 +277,7 @@ class DNA2Bit(DNA):
         ----------
         file : str
             1bit filename
-        l : libdna.Loc
+        loc : libdna.Loc
             dna location
         
         Returns
@@ -251,22 +286,31 @@ class DNA2Bit(DNA):
             byte array from file where each byte represents 8 bases.
         """
         
-        f = open(file, 'rb')
-        f.seek((l.start - 1) // 8)
-        # read length + 2 because we need the extra byte in case the start
-        # position lies mid way through a byte. Imagine a sequence 10 bp long
-        # starting at position 4. 10 // 8 + 1 = 2 bytes of data required to
-        # store this. Since we pick the closest byte as the start, this will
-        # be position 0 (4 // 8 = 0). The length is 2 bytes spanning bytes 0
-        # and 1, but because of the start at 3, our sequence spans byte 3 so
-        # we need to buffer an extra byte for cases where the start does not
-        # match the start of a byte
-        data = f.read(l.length // 8 + 2)
-        f.close()
+        s = loc.start - 1
+        e = s + loc.length
+        bs = s // 8
+        be = e // 8
+        n = be - bs + 1
+        
+        
+        data = self.read_data(file, bs, n)
+        
+#        f = open(file, 'rb')
+#        f.seek(bs)  #(l.start - 1) // 8)
+#        # read length + 2 because we need the extra byte in case the start
+#        # position lies mid way through a byte. Imagine a sequence 10 bp long
+#        # starting at position 4. 10 // 8 + 1 = 2 bytes of data required to
+#        # store this. Since we pick the closest byte as the start, this will
+#        # be position 0 (3 // 8 = 0). The length is 2 bytes spanning bytes 0
+#        # and 1, but because of the start at 3, our sequence spans byte 3 so
+#        # we need to buffer an extra byte for cases where the start does not
+#        # match the start of a byte
+#        data = f.read(l) #l.length // 8 + 2)
+#        f.close()
         return data
     
     
-    def _read_n(self, l, ret):
+    def _read_n(self, loc, ret):
         """
         Reads 'N' mask from 1 bit file to convert bases to 'N'. In the
         2 bit file, 'N' or any other invalid base is written as 'A'.
@@ -281,21 +325,48 @@ class DNA2Bit(DNA):
             List of bases which will be modified in place.
         """
         
-        file = os.path.join(self.dir, l.chr + ".n.1bit")
+        file = '{}.n.1bit'.format(loc.chr)
         
-        if not os.path.exists(file):
-            return
+        data = self._read_1bit_file(file, loc)
         
-        data = DNA2Bit._read_1bit_file(file, l)
-        
-        d = DNA2Bit._read1bit(data, l)
+        d = self._read1bit(data, loc)
         
         for i in range(0, len(ret)):
             if d[i] == 1:
                 ret[i] = DNA_N_UC #'N'
                 
-                    
-    def _read_mask(self, l, ret, mask='upper'):
+                
+    def read_data(self, file, seek, n):
+        """
+        Reads data from a file source
+        
+        Parameter
+        ---------
+        file : str
+            Relative path to file
+        seek : int
+            Start offset in bytes
+        n : int
+            Amoount of data to read in bytes
+        
+        Returns
+        -------
+        bytearray
+            Data from file
+        """
+        file = os.path.join(self.dir, file).lower()
+        
+        if not os.path.exists(file):
+            return None
+        
+        f = open(file, 'rb')
+        f.seek(seek)
+        data = f.read(n) #l.length // 8 + 2)
+        f.close()
+        return data
+    
+        
+    def _read_mask(self, loc, ret, mask='upper'):
         """
         Reads mask from 1 bit file to convert bases to identify poor quality
         bases that will either be converted to lowercase or 'N'. In the
@@ -317,14 +388,11 @@ class DNA2Bit(DNA):
         if mask.startswith('u'):
             return
          
-        file = os.path.join(self.__dir, l.chr + ".mask.1bit")
-             
-        if not os.path.exists(file):
-            return
+        file = '{}.mask.1bit'.format(loc.chr)
         
-        data = DNA2Bit._read_1bit_file(file, l)
+        data = self._read_1bit_file(file, loc)
         
-        d = DNA2Bit._read1bit(data, l)
+        d = self._read1bit(data, loc)
         
         if mask.startswith('l'):
             for i in range(0, len(ret)):
@@ -343,6 +411,8 @@ class DNA2Bit(DNA):
         
         Parameters
         ----------
+        loc : str or tuple
+            Genomic Location
         mask : str, optional
             Indicate whether masked bases should be represented as is
             ('upper'), lowercase ('lower'), or as N ('n')
@@ -363,12 +433,12 @@ class DNA2Bit(DNA):
         ret = self._read_dna(l, lowercase=lowercase)
         
         self._read_n(l, ret)
-            
+        
         self._read_mask(l, ret, mask=mask)
         
         if rev_comp:
             DNA2Bit._rev_comp(ret)
-        
+
         ret = ret.decode('utf-8')
         
         if lowercase:
@@ -403,7 +473,7 @@ class DNA2Bit(DNA):
         inner = s2 - e1 - 1
     
         if inner >= 0:
-            seq = self.dna((r1.chr, s1, e2))
+            seq = self.dna(libdna.Loc(r1.chr, s1, e2))
         else:
             # Reads overlap so concatenate the first read with the
             # portion of the second read that is not overlapping
@@ -411,6 +481,24 @@ class DNA2Bit(DNA):
             seq = r1.seq + r2.seq[-inner:]
             
         return seq
+
+  
+class AWSS3DNA2Bit(DNA2Bit):
+    def __init__(self, bucket, dir):
+        super().__init__(dir)
+        self.__bucket = awss3lib.AWSS3Bucket(bucket)
+        
+    @property
+    def bucket(self):
+        return self.__bucket
+    
+    def read_data(self, file, seek, n):
+        file = os.path.join(self.dir, file).lower()
+        
+        f = self.__bucket.open(file)
+        f.seek(seek)
+        data = f.read(n)
+        return data
     
     
 class CachedDNA2Bit(DNA2Bit):
@@ -425,7 +513,7 @@ class CachedDNA2Bit(DNA2Bit):
         self.__mask_file = ''
         
     
-    def _read_dna(self, l, lowercase=False):
+    def _read_dna(self, loc, lowercase=False):
         """
         Read DNA from a 2bit file where each base is encoded in 2bit 
         (4 bases per byte).
@@ -441,10 +529,11 @@ class CachedDNA2Bit(DNA2Bit):
             Array of base chars
         """
         
-        file = os.path.join(self.dir, l.chr + ".dna.2bit")
+        file = os.path.join(self.dir, loc.chr + ".dna.2bit")
         
         if not os.path.exists(file):
-            return []
+            print(file, 'does not exist.')
+            return EMPTY_BYTEARRAY
 
         if file != self.__file:
             print('Caching {}...'.format(file))
@@ -455,7 +544,7 @@ class CachedDNA2Bit(DNA2Bit):
             f.close()
             
             
-        return DNA2Bit._read2bit(self.__data, l, offset=True)
+        return self._read2bit(self.__data, loc, offset=True)
     
     
     def _read_n(self, l, ret):
@@ -485,7 +574,7 @@ class CachedDNA2Bit(DNA2Bit):
             f.close()
             self.__n_file = file
         
-        d = DNA2Bit._read1bit(self.__n_data, l, offset=True)
+        d = self._read1bit(self.__n_data, l, offset=True)
         
         for i in range(0, len(ret)):
             if d[i] == 1:
@@ -526,9 +615,9 @@ class CachedDNA2Bit(DNA2Bit):
             f.close()
             self.__mask_file = file
         
-        d = DNA2Bit._read1bit(self.__mask_data, l, offset=True)
+        d = self._read1bit(self.__mask_data, l, offset=True)
         
-        if mask.startswith(l):
+        if mask.startswith('l'):
             for i in range(0, len(ret)):
                 if d[i] == 1:
                     ret[i] = DNA_UC_TO_LC_MAP[ret[i]] #ret[i].lower()
