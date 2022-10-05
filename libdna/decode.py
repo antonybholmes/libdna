@@ -2,7 +2,6 @@ import os
 from abc import ABC, abstractmethod
 import libdna
 import sys
-#import awss3lib
 import s3fs
 
 # Use ord('A') etc to get ascii values
@@ -196,7 +195,7 @@ class DNA2Bit(DNA):
         if d is None:
             return EMPTY_BYTEARRAY
         
-        print(d, loc)
+        #print(d, loc)
         
         s = loc.start - 1
         
@@ -484,7 +483,7 @@ class DNA2Bit(DNA):
         return seq
 
   
-class AWSS3DNA2Bit(DNA2Bit):
+class S3DNA2Bit(DNA2Bit):
     def __init__(self, bucket, dir):
         super().__init__(dir)
         self.__bucket = bucket
@@ -497,7 +496,7 @@ class AWSS3DNA2Bit(DNA2Bit):
     def read_data(self, file, seek, n):
         file = os.path.join(self.__bucket, self.dir, file).lower()
         
-        f = self.__fs.open(file)
+        f = self.__fs.open(file, 'rb')
         f.seek(seek)
         data = f.read(n)
         return data
