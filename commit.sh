@@ -1,6 +1,6 @@
 msg=$1 #"Bug fixes and updates."
 type="fix"
-branch="main"
+branch="master"
 
 if [[ -z "${msg}" ]]
 then
